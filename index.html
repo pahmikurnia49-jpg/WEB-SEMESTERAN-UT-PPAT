@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pembayaran UT - Pondok Pesantren</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        /* Custom Font & Utilities */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hidden-section { display: none; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        /* Animasi Transisi */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Kartu SPP Style */
+        .spp-card {
+            border: 2px solid #10b981;
+            background-image: radial-gradient(#10b981 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #f0fdf4;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="toast" class="fixed top-5 right-5 z-50 hidden bg-gray-800 text-white px-6 py-3 rounded shadow-lg transition-all transform translate-y-[-100%]">
+        <span id="toast-msg">Pesan notifikasi</span>
+    </div>
+
+    <section id="login-page" class="h-screen w-full flex items-center justify-center bg-gradient-to-br from-green-600 to-teal-800">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 fade-in">
+            <div class="flex justify-center gap-4 mb-6">
+                <img src="logo1.png" alt="Logo UT" class="h-12 w-12 object-contain bg-gray-100 rounded-full" onerror="this.src='https://via.placeholder.com/50?text=UT'">
+                <img src="logo2.png" alt="Logo Ponpes" class="h-12 w-12 object-contain bg-gray-100 rounded-full" onerror="this.src='https://via.placeholder.com/50?text=PP'">
+            </div>
+            <h2 class="text-2xl font-bold text-center text-gray-700 mb-1">Sistem Keuangan</h2>
+            <p class="text-center text-gray-500 text-sm mb-6">Kolaborasi UT & Pondok Pesantren</p>
+            
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="login-user" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="admin" required>
+                </div>
+                <div class="mb-2 relative">
+                    <label class="block text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="login-pass" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="123456" required>
+                    <button type="button" onclick="togglePassword('login-pass')" class="absolute right-3 top-9 text-gray-500 hover:text-green-600">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <div class="text-right mb-6">
+                    <a href="#" onclick="alert('Kode pemulihan default: 112233')" class="text-xs text-green-600 hover:underline">Lupa kata sandi?</a>
+                </div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">MASUK</button>
+            </form>
+        </div>
+    </section>
+
+    <div id="main-app" class="hidden-section flex h-screen overflow-hidden">
+        
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between hidden md:flex">
+            <div>
+                <div class="p-6 flex items-center gap-3 border-b border-gray-100">
+                    <div class="bg-green-100 text-green-600 p-2 rounded-lg"><i class="fa-solid fa-mosque"></i></div>
+                    <span class="font-bold text-lg tracking-tight">SIPANTREN</span>
+                </div>
+                <nav class="mt-6 px-4 space-y-2">
+                    <button onclick="nav('dashboard')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-3 transition">
+                        <i class="fa-solid fa-chart-pie w-6"></i> Dashboard
+                    </button>
+                    <button onclick="nav('mahasiswa')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-3 transition">
+                        <i class="fa-solid fa-user-graduate w-6"></i> Data Mahasiswa
+                    </button>
+                    <button onclick="nav('pembayaran')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-3 transition">
+                        <i class="fa-solid fa-money-bill-wave w-6"></i> Pembayaran
+                    </button>
+                    <button onclick="nav('laporan')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-3 transition">
+                        <i class="fa-solid fa-file-invoice w-6"></i> Kartu & Laporan
+                    </button>
+                    <button onclick="nav('setting')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-3 transition">
+                        <i class="fa-solid fa-gear w-6"></i> Pengaturan
+                    </button>
+                </nav>
+            </div>
+            <div class="p-4 border-t">
+                <button onclick="logout()" class="w-full bg-red-50 text-red-600 py-2 rounded-lg font-medium hover:bg-red-100"><i class="fa-solid fa-right-from-bracket mr-2"></i> Keluar</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+            <header class="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-10">
+                <h1 id="page-title" class="text-xl font-bold text-gray-800">Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p id="clock-time" class="text-sm font-bold text-gray-800">00:00:00</p>
+                        <p id="clock-date" class="text-xs text-gray-500">Senin, 1 Jan 2024</p>
+                    </div>
+                    <div class="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold border border-green-200">A</div>
+                </div>
+            </header>
+
+            <section id="view-dashboard" class="content-view p-6 space-y-6 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm">Tahun Akademik</p>
+                                <h3 id="dash-year" class="text-xl font-bold text-gray-800 mt-1">2023/2024</h3>
+                                <span id="dash-semester" class="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-bold">GANJIL</span>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg text-blue-600"><i class="fa-solid fa-calendar-days"></i></div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm">Total Mahasiswa</p>
+                                <h3 id="dash-total-mhs" class="text-2xl font-bold text-gray-800 mt-1">0</h3>
+                                <p class="text-xs text-green-600 mt-1">+ Aktif</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg text-green-600"><i class="fa-solid fa-users"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm">Kas Masuk (Bulan Ini)</p>
+                                <h3 id="dash-income" class="text-xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-lg text-yellow-600"><i class="fa-solid fa-wallet"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm">Tagihan Pending</p>
+                                <h3 id="dash-pending" class="text-xl font-bold text-red-600 mt-1">0</h3>
+                                <p class="text-xs text-gray-400 mt-1">Mahasiswa belum lunas</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg text-red-600"><i class="fa-solid fa-circle-exclamation"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-green-700 to-green-900 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-bold mb-2">📢 Informasi Pondok & UT</h3>
+                        <p class="opacity-90 max-w-2xl">Pastikan sinkronisasi data pembayaran semester dilakukan sebelum tanggal 20 setiap bulannya agar tidak terjadi keterlambatan pelaporan ke Universitas Terbuka.</p>
+                    </div>
+                    <i class="fa-solid fa-bullhorn absolute -right-6 -bottom-6 text-9xl text-white opacity-10 rotate-[-20deg]"></i>
+                </div>
+            </section>
+
+            <section id="view-mahasiswa" class="content-view p-6 hidden-section fade-in">
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h3 class="font-bold text-lg mb-4">Input Data Mahasiswa Baru</h3>
+                    <form onsubmit="addStudent(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <input type="text" id="mhs-nim" placeholder="NIM (Nomor Induk)" class="border p-2 rounded focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="mhs-nama" placeholder="Nama Lengkap" class="border p-2 rounded focus:ring-2 focus:ring-green-500" required>
+                        <select id="mhs-prodi" class="border p-2 rounded bg-white">
+                            <option value="Manajemen">Manajemen</option>
+                            <option value="PGSD">PGSD</option>
+                            <option value="Hukum">Ilmu Hukum</option>
+                            <option value="Komunikasi">Ilmu Komunikasi</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <input type="number" id="mhs-tahun" placeholder="Tahun Masuk (Ex: 2022)" class="border p-2 rounded w-full" required>
+                            <button type="submit" class="bg-green-600 text-white px-4 rounded hover:bg-green-700"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </form>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                                    <th class="p-3">NIM</th>
+                                    <th class="p-3">Nama</th>
+                                    <th class="p-3">Prodi</th>
+                                    <th class="p-3">Angkatan</th>
+                                    <th class="p-3">Semester (Auto)</th>
+                                    <th class="p-3">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-mhs-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-pembayaran" class="content-view p-6 hidden-section fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-xl shadow-sm border p-6">
+                            <h3 class="font-bold text-lg mb-4 border-b pb-2">Input Pembayaran</h3>
+                            <form onsubmit="addPayment(event)">
+                                <div class="mb-3">
+                                    <label class="text-sm block text-gray-600 mb-1">Pilih Mahasiswa</label>
+                                    <select id="pay-student-select" class="w-full border p-2 rounded bg-white" required></select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-sm block text-gray-600 mb-1">Semester Bayar</label>
+                                    <input type="number" id="pay-semester" class="w-full border p-2 rounded" placeholder="Contoh: 3" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-sm block text-gray-600 mb-1">Jenis Pembayaran</label>
+                                    <select id="pay-type" class="w-full border p-2 rounded bg-white">
+                                        <option value="SPP Semester">SPP Semester UT</option>
+                                        <option value="Registrasi">Registrasi Ulang</option>
+                                        <option value="Modul">Pembelian Modul</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="text-sm block text-gray-600 mb-1">Nominal (Rp)</label>
+                                    <input type="number" id="pay-amount" class="w-full border p-2 rounded" placeholder="1300000" required>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">Simpan Transaksi</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm border p-6">
+                            <h3 class="font-bold text-lg mb-4">Riwayat Transaksi Terakhir</h3>
+                            <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="bg-gray-50 border-b">
+                                            <th class="p-3 text-left">Tanggal</th>
+                                            <th class="p-3 text-left">Nama</th>
+                                            <th class="p-3 text-left">Keterangan</th>
+                                            <th class="p-3 text-right">Jumlah</th>
+                                            <th class="p-3 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-payment-body">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-laporan" class="content-view p-6 hidden-section fade-in">
+                <div class="mb-6 bg-white p-4 rounded shadow-sm border flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-gray-700">Lihat Kartu SPP</h3>
+                        <p class="text-sm text-gray-500">Pilih mahasiswa untuk melihat kartu digital</p>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <select id="card-student-select" class="border p-2 rounded w-full" onchange="renderCard()">
+                            <option value="">-- Pilih Mahasiswa --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-center">
+                    <div id="capture-area" class="w-[800px] bg-white hidden shadow-2xl relative overflow-hidden">
+                        <div class="bg-green-700 text-white p-6 flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <img src="logo2.png" alt="Logo" class="h-16 w-16 bg-white rounded-full p-1" onerror="this.style.display='none'">
+                                <div>
+                                    <h2 class="text-2xl font-bold uppercase">Kartu Studi & Pembayaran</h2>
+                                    <p class="text-sm opacity-90">Pondok Pesantren X Universitas Terbuka</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <img src="logo1.png" alt="UT" class="h-12 bg-white rounded p-1 mb-1" onerror="this.style.display='none'">
+                                <p class="text-xs font-mono">SIP-DIGITAL</p>
+                            </div>
+                        </div>
+
+                        <div class="p-8 bg-pattern">
+                            <div class="grid grid-cols-2 gap-8 mb-6">
+                                <div>
+                                    <p class="text-gray-500 text-xs uppercase tracking-wider">Nama Mahasiswa</p>
+                                    <h3 id="card-name" class="text-xl font-bold text-gray-800 border-b pb-1">...</h3>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-xs uppercase tracking-wider">NIM</p>
+                                    <h3 id="card-nim" class="text-xl font-bold text-gray-800 border-b pb-1">...</h3>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-xs uppercase tracking-wider">Program Studi</p>
+                                    <h3 id="card-prodi" class="text-lg font-medium text-gray-800">...</h3>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-xs uppercase tracking-wider">Status</p>
+                                    <span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold mt-1">AKTIF</span>
+                                </div>
+                            </div>
+
+                            <div class="border rounded-lg overflow-hidden">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-100 text-gray-600">
+                                        <tr>
+                                            <th class="p-2 text-left">Tanggal</th>
+                                            <th class="p-2 text-left">Keterangan</th>
+                                            <th class="p-2 text-right">Nominal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="card-history-body">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 border-t text-center text-xs text-gray-400 flex justify-between">
+                            <span>Dicetak pada: <span id="print-date"></span></span>
+                            <span>Verifikasi: Valid System</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="download-btn-area" class="text-center mt-6 hidden">
+                    <button onclick="downloadPNG()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition transform hover:scale-105">
+                        <i class="fa-solid fa-download mr-2"></i> Unduh Kartu (PNG)
+                    </button>
+                </div>
+            </section>
+
+            <section id="view-setting" class="content-view p-6 hidden-section fade-in">
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border">
+                        <h3 class="font-bold text-lg mb-4 text-gray-700"><i class="fa-solid fa-lock mr-2"></i>Keamanan Akun</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="set-user" placeholder="Ganti Username Baru" class="w-full border p-2 rounded">
+                            <div class="relative">
+                                <input type="password" id="set-pass" placeholder="Ganti Password Baru" class="w-full border p-2 rounded">
+                                <button type="button" onclick="togglePassword('set-pass')" class="absolute right-3 top-2 text-gray-400"><i class="fa-solid fa-eye"></i></button>
+                            </div>
+                            <input type="text" id="set-recover" placeholder="Kode Pemulihan (Untuk Lupa Sandi)" class="w-full border p-2 rounded">
+                            <button onclick="saveSettings()" class="bg-green-600 text-white px-4 py-2 rounded font-medium hover:bg-green-700">Simpan Perubahan</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border">
+                        <h3 class="font-bold text-lg mb-4 text-gray-700"><i class="fa-solid fa-database mr-2"></i>Manajemen Data</h3>
+                        <div class="flex gap-4">
+                            <button onclick="backupData()" class="flex-1 bg-blue-50 text-blue-600 border border-blue-200 p-4 rounded-lg hover:bg-blue-100 transition">
+                                <i class="fa-solid fa-cloud-arrow-down text-2xl mb-2 block"></i>
+                                <b>Backup Data JSON</b>
+                                <p class="text-xs mt-1">Unduh semua data ke komputer</p>
+                            </button>
+                            <label class="flex-1 cursor-pointer bg-yellow-50 text-yellow-600 border border-yellow-200 p-4 rounded-lg hover:bg-yellow-100 transition text-center">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl mb-2 block"></i>
+                                <b>Restore Data</b>
+                                <p class="text-xs mt-1">Upload file JSON cadangan</p>
+                                <input type="file" id="restore-file" class="hidden" onchange="restoreData(this)">
+                            </label>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <button onclick="resetAllData()" class="text-red-500 text-sm hover:underline">Hapus Semua Data & Reset (Bahaya)</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- DATA STORE ---
+        // Kita pakai LocalStorage biar data tersimpan di browser
+        const defaultData = {
+            auth: { user: 'admin', pass: '123456', recovery: '112233' },
+            students: [],
+            payments: [],
+            settings: { logo1: 'logo1.png', logo2: 'logo2.png' }
+        };
+
+        let appData = JSON.parse(localStorage.getItem('ponpesUT_Data')) || defaultData;
+
+        // --- AUTHENTICATION ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+
+            if (u === appData.auth.user && p === appData.auth.pass) {
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden-section');
+                initDashboard();
+                showToast("Berhasil Login! Selamat Datang.");
+            } else {
+                showToast("Username atau Password Salah!", true);
+            }
+        }
+
+        function logout() {
+            if(confirm('Yakin ingin keluar?')) {
+                location.reload();
+            }
+        }
+
+        function togglePassword(id) {
+            const x = document.getElementById(id);
+            x.type = x.type === "password" ? "text" : "password";
+        }
+
+        function saveSettings() {
+            const newUser = document.getElementById('set-user').value;
+            const newPass = document.getElementById('set-pass').value;
+            const newRec = document.getElementById('set-recover').value;
+
+            if(newUser) appData.auth.user = newUser;
+            if(newPass) appData.auth.pass = newPass;
+            if(newRec) appData.auth.recovery = newRec;
+
+            saveData();
+            showToast("Pengaturan Akun Diperbarui");
+            document.getElementById('set-pass').value = '';
+        }
+
+        // --- DASHBOARD & UTILS ---
+        function initDashboard() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderStats();
+            renderStudentsTable();
+            populateStudentSelects();
+            renderPaymentHistory();
+            
+            // Set Page Title default
+            document.getElementById('page-title').innerText = 'Dashboard Ringkasan';
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID');
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Logic Semester Ganjil/Genap
+            // Ganjil biasanya Sept-Jan, Genap Feb-Agustus
+            const month = now.getMonth() + 1; // 1-12
+            const year = now.getFullYear();
+            let smtLabel = (month >= 2 && month <= 7) ? "GENAP" : "GANJIL";
+            let academicYear = (month >= 8) ? `${year}/${year+1}` : `${year-1}/${year}`;
+            
+            document.getElementById('dash-year').innerText = academicYear;
+            document.getElementById('dash-semester').innerText = smtLabel;
+        }
+
+        function nav(viewId) {
+            // Hide all views
+            document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden-section'));
+            // Show selected
+            document.getElementById('view-' + viewId).classList.remove('hidden-section');
+            
+            // Update Title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'mahasiswa': 'Data Mahasiswa',
+                'pembayaran': 'Transaksi Pembayaran',
+                'laporan': 'Kartu & Laporan',
+                'setting': 'Pengaturan Sistem'
+            };
+            document.getElementById('page-title').innerText = titles[viewId];
+        }
+
+        // --- LOGIC MAHASISWA ---
+        function addStudent(e) {
+            e.preventDefault();
+            const nim = document.getElementById('mhs-nim').value;
+            const nama = document.getElementById('mhs-nama').value;
+            const prodi = document.getElementById('mhs-prodi').value;
+            const tahun = parseInt(document.getElementById('mhs-tahun').value);
+
+            // Cek duplikat
+            if(appData.students.find(s => s.nim === nim)) {
+                showToast("NIM sudah terdaftar!", true);
+                return;
+            }
+
+            appData.students.push({ nim, nama, prodi, tahun, added: new Date().toISOString() });
+            saveData();
+            renderStudentsTable();
+            populateStudentSelects();
+            renderStats();
+            e.target.reset();
+            showToast("Mahasiswa Berhasil Ditambahkan");
+        }
+
+        function calculateSemester(entryYear) {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            
+            let yearsDiff = currentYear - entryYear;
+            let smt = yearsDiff * 2;
+            if (currentMonth > 7) smt += 1; // Masuk semester ganjil baru
+            if (currentMonth <= 7 && yearsDiff > 0) smt += 0; // Masih semester genap tahun ajaran lalu? Logic simplified
+            
+            // Simple logic: If registered 2023, now 2024 (Feb). 2024-2023 = 1 year. 
+            // If month < 7 (Feb), it's Genap (Sem 2). If month > 7, it's Ganjil (Sem 3).
+            let semester = (currentYear - entryYear) * 2;
+            if(currentMonth > 7) semester += 1; 
+            else if(semester > 0) semester += 0; // Stay
+            
+            return Math.max(1, semester); // Min sem 1
+        }
+
+        function renderStudentsTable() {
+            const tbody = document.getElementById('table-mhs-body');
+            tbody.innerHTML = '';
+            appData.students.forEach((s, index) => {
+                const sem = calculateSemester(s.tahun);
+                const row = `
+                    <tr class="border-b hover:bg-gray-50 text-sm">
+                        <td class="p-3 font-mono">${s.nim}</td>
+                        <td class="p-3 font-bold text-gray-700">${s.nama}</td>
+                        <td class="p-3">${s.prodi}</td>
+                        <td class="p-3">${s.tahun}</td>
+                        <td class="p-3"><span class="bg-blue-100 text-blue-800 px-2 rounded-full text-xs font-bold">Smt ${sem}</span></td>
+                        <td class="p-3">
+                            <button onclick="deleteStudent(${index})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function deleteStudent(index) {
+            if(confirm("Hapus data mahasiswa ini? Data pembayaran terkait tidak akan hilang tapi nama akan jadi 'Unknown'.")) {
+                appData.students.splice(index, 1);
+                saveData();
+                renderStudentsTable();
+                populateStudentSelects();
+                renderStats();
+            }
+        }
+
+        // --- LOGIC PEMBAYARAN ---
+        function populateStudentSelects() {
+            const opts = '<option value="">-- Pilih Mahasiswa --</option>' + 
+                appData.students.map(s => `<option value="${s.nim}">${s.nama} (${s.nim})</option>`).join('');
+            
+            document.getElementById('pay-student-select').innerHTML = opts;
+            document.getElementById('card-student-select').innerHTML = opts;
+        }
+
+        function addPayment(e) {
+            e.preventDefault();
+            const nim = document.getElementById('pay-student-select').value;
+            const smt = document.getElementById('pay-semester').value;
+            const type = document.getElementById('pay-type').value;
+            const amount = parseInt(document.getElementById('pay-amount').value);
+
+            // Find name
+            const student = appData.students.find(s => s.nim === nim);
+            const nama = student ? student.nama : "Unknown";
+
+            const trx = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                nim, nama, smt, type, amount
+            };
+
+            appData.payments.unshift(trx); // Add to top
+            saveData();
+            renderPaymentHistory();
+            renderStats();
+            e.target.reset();
+            showToast("Pembayaran Berhasil Disimpan");
+        }
+
+        function renderPaymentHistory() {
+            const tbody = document.getElementById('table-payment-body');
+            tbody.innerHTML = '';
+            
+            // Show last 50 transactions
+            appData.payments.slice(0, 50).forEach(p => {
+                const dateObj = new Date(p.date);
+                const dateStr = dateObj.toLocaleDateString('id-ID') + ' ' + dateObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                
+                const row = `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3 text-gray-500">${dateStr}</td>
+                        <td class="p-3 font-medium">${p.nama}</td>
+                        <td class="p-3 text-xs">
+                            <span class="block font-bold text-gray-600">${p.type}</span>
+                            Semester ${p.smt}
+                        </td>
+                        <td class="p-3 text-right font-mono text-green-700">Rp ${p.amount.toLocaleString('id-ID')}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deletePayment(${p.id})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function deletePayment(id) {
+            if(confirm("Batalkan/Hapus transaksi ini?")) {
+                appData.payments = appData.payments.filter(p => p.id !== id);
+                saveData();
+                renderPaymentHistory();
+                renderStats();
+            }
+        }
+
+        // --- STATS LOGIC ---
+        function renderStats() {
+            document.getElementById('dash-total-mhs').innerText = appData.students.length;
+            
+            // Hitung Income Bulan Ini
+            const now = new Date();
+            const thisMonth = now.getMonth();
+            const thisYear = now.getFullYear();
+            
+            const income = appData.payments.reduce((acc, curr) => {
+                const d = new Date(curr.date);
+                if(d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+                    return acc + curr.amount;
+                }
+                return acc;
+            }, 0);
+            
+            document.getElementById('dash-income').innerText = "Rp " + income.toLocaleString('id-ID');
+            
+            // Dummy Pending Logic (Anggaplah setiap mahasiswa aktif harusnya bayar bulan ini)
+            // Ini logika sederhana saja
+            document.getElementById('dash-pending').innerText = Math.max(0, appData.students.length - appData.payments.length % appData.students.length); // Just mock data logic
+        }
+
+        // --- KARTU & PRINT LOGIC ---
+        function renderCard() {
+            const nim = document.getElementById('card-student-select').value;
+            const area = document.getElementById('capture-area');
+            const btn = document.getElementById('download-btn-area');
+            
+            if(!nim) {
+                area.classList.add('hidden');
+                btn.classList.add('hidden');
+                return;
+            }
+
+            const student = appData.students.find(s => s.nim === nim);
+            if(student) {
+                document.getElementById('card-name').innerText = student.nama;
+                document.getElementById('card-nim').innerText = student.nim;
+                document.getElementById('card-prodi').innerText = student.prodi;
+                document.getElementById('print-date').innerText = new Date().toLocaleString('id-ID');
+                
+                // History spesifik mahasiswa ini (limit 5)
+                const history = appData.payments.filter(p => p.nim === nim).slice(0, 5);
+                const hBody = document.getElementById('card-history-body');
+                hBody.innerHTML = '';
+                
+                if(history.length === 0) {
+                    hBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-400">Belum ada riwayat transaksi</td></tr>';
+                } else {
+                    history.forEach(h => {
+                        const d = new Date(h.date).toLocaleDateString('id-ID');
+                        hBody.innerHTML += `
+                            <tr class="border-b text-gray-600">
+                                <td class="p-2">${d}</td>
+                                <td class="p-2">${h.type} (Smt ${h.smt})</td>
+                                <td class="p-2 text-right">Rp ${h.amount.toLocaleString('id-ID')}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                area.classList.remove('hidden');
+                btn.classList.remove('hidden');
+            }
+        }
+
+        function downloadPNG() {
+            const element = document.getElementById("capture-area");
+            html2canvas(element).then(canvas => {
+                const link = document.createElement("a");
+                const nim = document.getElementById('card-nim').innerText;
+                link.download = `KARTU_SPP_${nim}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+        // --- BACKUP & RESTORE ---
+        function saveData() {
+            localStorage.setItem('ponpesUT_Data', JSON.stringify(appData));
+        }
+
+        function backupData() {
+            const dataStr = JSON.stringify(appData);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'BACKUP_SIP_PONDOK_'+ new Date().toISOString().slice(0,10) +'.json';
+            
+            let linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        function restoreData(input) {
+            const file = input.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if(json.auth && json.students) {
+                        appData = json;
+                        saveData();
+                        alert("Data berhasil dipulihkan! Halaman akan dimuat ulang.");
+                        location.reload();
+                    } else {
+                        alert("Format file salah!");
+                    }
+                } catch(err) {
+                    alert("File rusak atau bukan JSON valid.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetAllData() {
+            if(confirm("PERINGATAN KERAS: Semua data mahasiswa dan pembayaran akan dihapus permanen. Lanjutkan?")) {
+                localStorage.removeItem('ponpesUT_Data');
+                location.reload();
+            }
+        }
+
+        // --- TOAST NOTIFICATION ---
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            const m = document.getElementById('toast-msg');
+            m.innerText = msg;
+            t.classList.remove('hidden');
+            t.classList.remove('translate-y-[-100%]'); // Slide down
+            
+            if(isError) {
+                t.classList.remove('bg-gray-800');
+                t.classList.add('bg-red-600');
+            } else {
+                t.classList.remove('bg-red-600');
+                t.classList.add('bg-gray-800');
+            }
+
+            setTimeout(() => {
+                t.classList.add('translate-y-[-100%]');
+                setTimeout(() => t.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>
